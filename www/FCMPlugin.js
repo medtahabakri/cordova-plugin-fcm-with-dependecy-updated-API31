@@ -53,9 +53,6 @@ var FCMPlugin = (function () {
         }
         return execAsPromise('createNotificationChannel', [channelConfig]);
     };
-    FCMPlugin.prototype.deleteInstanceId = function () {
-        return execAsPromise('deleteInstanceId');
-    };
     FCMPlugin.prototype.getAPNSToken = function () {
         return window.cordova.platformId !== 'ios'
             ? Promise.resolve('')
@@ -68,9 +65,9 @@ var FCMPlugin = (function () {
         return execAsPromise('getToken');
     };
     FCMPlugin.prototype.hasPermission = function () {
-        return window.cordova.platformId === 'ios'
-            ? execAsPromise('hasPermission')
-            : execAsPromise('hasPermission').then(function (value) { return !!value; });
+        return window.cordova.platformId !== 'ios'
+            ? Promise.resolve(true)
+            : execAsPromise('hasPermission');
     };
     FCMPlugin.prototype.onNotification = function (callback, options) {
         return asDisposableListener(this.eventTarget, 'notification', callback, options);

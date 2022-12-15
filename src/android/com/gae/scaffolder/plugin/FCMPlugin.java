@@ -1,6 +1,5 @@
 package com.gae.scaffolder.plugin;
 
-import androidx.core.app.NotificationManagerCompat;
 import android.app.NotificationManager;
 import android.content.Context;
 import android.util.Log;
@@ -9,6 +8,8 @@ import com.gae.scaffolder.plugin.interfaces.*;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.Task;
+import com.google.firebase.iid.FirebaseInstanceId;
+import com.google.firebase.iid.InstanceIdResult;
 import com.google.firebase.messaging.FirebaseMessaging;
 
 import org.apache.cordova.CallbackContext;
@@ -77,23 +78,32 @@ public class FCMPlugin extends CordovaPlugin {
         Log.d(TAG, "==> FCMPlugin execute: " + action);
 
         try {
+            // READY //
             if (action.equals("ready")) {
                 callbackContext.success();
-            } else if (action.equals("startJsEventBridge")) {
+            }
+            // START JS EVENT BRIDGE //
+            else if (action.equals("startJsEventBridge")) {
                 this.jsEventBridgeCallbackContext = callbackContext;
-            } else if (action.equals("getToken")) {
+            }
+            // GET TOKEN //
+            else if (action.equals("getToken")) {
                 cordova.getActivity().runOnUiThread(new Runnable() {
                     public void run() {
                         getToken(callbackContext);
                     }
                 });
-            } else if (action.equals("getInitialPushPayload")) {
+            }
+            // GET INITIAL PUSH PAYLOAD //
+            else if (action.equals("getInitialPushPayload")) {
                 cordova.getActivity().runOnUiThread(new Runnable() {
                     public void run() {
                         getInitialPushPayload(callbackContext);
                     }
                 });
-            } else if (action.equals("subscribeToTopic")) {
+            }
+            // UN/SUBSCRIBE TOPICS //
+            else if (action.equals("subscribeToTopic")) {
                 cordova.getThreadPool().execute(new Runnable() {
                     public void run() {
                         try {
@@ -134,10 +144,6 @@ public class FCMPlugin extends CordovaPlugin {
                         new FCMPluginChannelCreator(getContext()).createNotificationChannel(callbackContext, args);
                     }
                 });
-            } else if (action.equals("deleteInstanceId")) {
-                this.deleteInstanceId(callbackContext);
-            } else if (action.equals("hasPermission")) {
-                this.hasPermission(callbackContext);
             } else {
                 callbackContext.error("Method not found");
                 return false;
@@ -177,9 +183,9 @@ public class FCMPlugin extends CordovaPlugin {
 
     public void getToken(final TokenListeners<String, JSONObject> callback) {
         try {
-            FirebaseMessaging.getInstance().getToken().addOnCompleteListener(new OnCompleteListener<String>() {
+            FirebaseInstanceId.getInstance().getInstanceId().addOnCompleteListener(new OnCompleteListener<InstanceIdResult>() {
                 @Override
-                public void onComplete(Task<String> task) {
+                public void onComplete(Task<InstanceIdResult> task) {
                     if (!task.isSuccessful()) {
                         Log.w(TAG, "getInstanceId failed", task.getException());
                         try {
@@ -192,14 +198,14 @@ public class FCMPlugin extends CordovaPlugin {
                     }
 
                     // Get new Instance ID token
-                    String newToken = task.getResult();
+                    String newToken = task.getResult().getToken();
 
                     Log.i(TAG, "\tToken: " + newToken);
                     callback.success(newToken);
                 }
             });
 
-            FirebaseMessaging.getInstance().getToken().addOnFailureListener(new OnFailureListener() {
+            FirebaseInstanceId.getInstance().getInstanceId().addOnFailureListener(new OnFailureListener() {
                 @Override
                 public void onFailure(final Exception e) {
                     try {
@@ -216,33 +222,6 @@ public class FCMPlugin extends CordovaPlugin {
                 callback.error(exceptionToJson(e));
             } catch(JSONException je) {}
         }
-    }
-
-    private void deleteInstanceId(final CallbackContext callbackContext) {
-        cordova.getThreadPool().execute(new Runnable() {
-            public void run() {
-                try {
-                    FirebaseMessaging.getInstance().deleteToken();
-                    callbackContext.success();
-                } catch (Exception e) {
-                    callbackContext.error(e.getMessage());
-                }
-            }
-        });
-    }
-
-    private void hasPermission(final CallbackContext callbackContext) {
-        cordova.getThreadPool().execute(new Runnable() {
-            public void run() {
-                try {
-                    NotificationManagerCompat notificationManagerCompat =
-                        NotificationManagerCompat.from(cordova.getActivity().getApplicationContext());
-                    callbackContext.success(notificationManagerCompat.areNotificationsEnabled() ? 1 : 0);
-                } catch (Exception e) {
-                    callbackContext.error(e.getMessage());
-                }
-            }
-        });
     }
 
     private JSONObject exceptionToJson(final Exception exception) throws JSONException {
@@ -281,14 +260,11 @@ public class FCMPlugin extends CordovaPlugin {
         Log.d(TAG, "\tSent event: " + eventName + " with " + stringifiedJSONValue);
     }
 
-    public static void setInitialPushPayload(Map<String, Object> payload) {
+    public static void sendPushPayload(Map<String, Object> payload) {
+        Log.d(TAG, "==> FCMPlugin sendPushPayload");
         if(initialPushPayload == null) {
             initialPushPayload = payload;
         }
-    }
-
-    public static void sendPushPayload(Map<String, Object> payload) {
-        Log.d(TAG, "==> FCMPlugin sendPushPayload");
         try {
             JSONObject jo = new JSONObject();
             for (String key : payload.keySet()) {

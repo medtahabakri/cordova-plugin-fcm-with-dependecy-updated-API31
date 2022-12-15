@@ -7,9 +7,6 @@ FCMPluginOnIonic.prototype.clearAllNotifications = function () {
 FCMPluginOnIonic.prototype.createNotificationChannel = function (channelConfig) {
     return window.FCM.createNotificationChannel(channelConfig)
 }
-FCMPluginOnIonic.prototype.deleteInstanceId = function () {
-    return window.FCM.deleteInstanceId()
-}
 FCMPluginOnIonic.prototype.getAPNSToken = function () {
     return window.FCM.getAPNSToken()
 }

@@ -1,9 +1,3 @@
-declare var window: {
-    cordova: {
-        exec: Function
-    }
-}
-
 /**
  * This is a simple helper to Promisify the calls to cordova
  *
